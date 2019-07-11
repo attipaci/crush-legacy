@@ -21,6 +21,8 @@
 
 	[CHANGE] Removed immature support for SOFIA/HIMES.
 
+	[CONFIG] {LABOCA} Opacities and calibration tables up to and including
+	2018-08-26.
 
 
 2.43-1 (27 December 2018)
