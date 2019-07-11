@@ -1,5 +1,17 @@
-2.43-2 (legacy)
 
+legacy 2.43-2 (11 July 2019)
+
+
+	Overview
+	=======================================================================
+	This legacy release has been created to back port critical bug fixes 
+	for instruments supported by earlier versions of CRUSH, but for which
+	support was dropped starting the 2.50 releases.
+	Namely, ASzCA, p-ArTeMiS, MAKO, MAKO-2, MUSTANG-2, and SHARC (gen 1).
+	All other CRUSH supported instruments should continue to use the
+	current (>= 2.50) releases, which continue to be the state-of-the-art
+	data reduction solutions for far-infrared and sumbillimeter imaging.
+	=======================================================================
 
 	
 	[FIX] {SOFIA} Default coordinate epoch of J2000.0 is assumed when
