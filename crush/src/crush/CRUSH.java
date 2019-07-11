@@ -61,7 +61,7 @@ public class CRUSH extends Configurator implements BasicMessaging {
     private static final long serialVersionUID = 6284421525275783456L;
 
     private final static String version = "2.43-1";
-    private final static String revision = "legacy:devel.2";
+    private final static String revision = "devel.3";
 
     public static String home = ".";
     public static boolean debug = false;
@@ -889,7 +889,7 @@ public class CRUSH extends Configurator implements BasicMessaging {
         String version = null;
 
         try {
-            URL versionURL = new URL("http://www.sigmyne.com/crush/v2/release.version");
+            URL versionURL = new URL("http://www.sigmyne.com/crush/v2/legacy.version");
             URLConnection connection = versionURL.openConnection();
             try {
                 connection.setConnectTimeout(TCP_CONNECTION_TIMEOUT);
@@ -936,13 +936,12 @@ public class CRUSH extends Configurator implements BasicMessaging {
         for(int i=0; i<8; i++) System.err.print("**********");
         System.err.println();
 
-        warning(
-                "A NEW CRUSH-2 RELEASE IS NOW AVAILABLE FOR DOWNLOAD!!!\n" +
-                        "\n" + 
-                        "Version: " + releaseVersion + "\n" +
-                        "Available at: www.submm.caltech.edu/~sharc/crush\n\n" +
-                        "You should always update to the latest release to take advantage of critical " +
-                "bug fixes, improvements, and new features.");
+        warning("A NEW CRUSH-2 LEGACY RELEASE IS NOW AVAILABLE FOR DOWNLOAD!!!\n" +
+                "\n" + 
+                "Version: " + releaseVersion + "\n" +
+                "Available at: www.sigmyne.com/~sharc/crush\n\n" +
+                "You should always update to the latest release to take advantage of critical " +
+                "bug fixes.");
 
         for(int i=0; i<8; i++) System.err.print("**********");
         System.err.println();
@@ -971,7 +970,7 @@ public class CRUSH extends Configurator implements BasicMessaging {
                             "Java Runtime Environment (JRE).\n" +
                             "\n" +
                             "Please check for available Java packages for your system or see " +
-                            "http://www.submm.caltech.edu/~sharc/crush/download.html " +
+                            "http://www.sigmyne.com/crush/download.html " +
                             "for possible Java downloads.\n" +
                             "\n" +
                             "If you already have another Java installations on your system " +
@@ -1008,13 +1007,13 @@ public class CRUSH extends Configurator implements BasicMessaging {
     }
 
     public static String getVersion() {
-        return version;
+        return "legacy " + version;
     }
 
     public static String getFullVersion() {
-        if(revision == null) return version;
-        if(revision.length() == 0) return version;
-        return version + " (" + revision + ")";
+        if(revision == null) return getVersion();
+        if(revision.length() == 0) return getVersion();
+        return getVersion() + " (" + revision + ")";
     }
 
     public static void addHistory(Header header) throws HeaderCardException {
