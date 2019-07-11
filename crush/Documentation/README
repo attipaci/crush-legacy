@@ -1,7 +1,7 @@
-# CRUSH
+# CRUSH (Legacy version)
 
 Author: Attila Kovacs <attila[AT]sigmyne.com>  
-Last updated: 5 January 2018
+Last updated: 11 July 2018
 
 
 ----------------------------------------------------------------------------
@@ -68,6 +68,13 @@ CRUSH-2 is a reduction and imaging package for various astronomical imaging
 arrays. Version 2 provides a unified platform for reducing data from
 virtually any fast-sampling scanning camera. 
 
+This is the legacy version that supports instruments that have been dropped
+in the upstream releases. Specifically: ASzCa, p-ArTeMiS, MAKO, MAKO-2, 
+MUSTANG-2 and SHARC (1st gen). For all other instruments, it is recommended
+that you use the latest stable release from upstream (>2.50).
+
+This legacy version of CRUSH has a frozen set of features, and is maintained
+only with essential bug fixes, and nothing more.
 
 
 ### 1.1. Installation
