@@ -25,13 +25,13 @@ package crush.filters;
 import java.util.Arrays;
 
 import crush.Integration;
+import crush.Signal;
 import crush.Motion;
 import jnum.ExtraMath;
 import jnum.Unit;
 import jnum.Util;
 import jnum.data.Statistics;
 import jnum.math.Range;
-import jnum.math.Vector2D;
 
 
 // TODO account for point-source filtering, and Dependents...
@@ -49,16 +49,16 @@ public class MotionFilter extends KillFilter {
 	int harmonics = 1;
 	boolean oddHarmonicsOnly = false;
 	
-	public MotionFilter(Integration<?,?> integration) {
+	public MotionFilter(Integration<?, ?> integration) {
 		super(integration);
 	}
 	
-	public MotionFilter(Integration<?,?> integration, float[] data) {
+	public MotionFilter(Integration<?, ?> integration, float[] data) {
 		super(integration, data);
 	}
 	
 	@Override
-	protected void setIntegration(Integration<?,?> integration) {
+	protected void setIntegration(Integration<?, ?> integration) {
 		super.setIntegration(integration);
 		if(integration.hasOption("lab")) return;
 
@@ -70,21 +70,19 @@ public class MotionFilter extends KillFilter {
 		if(hasOption("harmonics")) harmonics = Math.max(1, option("harmonics").getInt());
 		oddHarmonicsOnly = hasOption("odd");
 		
-		Vector2D[] pos = integration.getSmoothPositions(Motion.SCANNING);
-		
-		addFilter(pos, Motion.X, buf);
-		addFilter(pos, Motion.Y, buf);
+		addFilter(Motion.SCANNING, Motion.X, buf);
+		addFilter(Motion.SCANNING, Motion.Y, buf);
 		
 		expandFilter();
 		harmonize();
 		
 		rangeCheck();
 		
-		int pass = 0;
 		final boolean[] reject = getRejectMask();
 		
-		for(int i=reject.length; --i >= 0; ) if(!reject[i]) pass++;
-		
+		int pass = 0;
+		for(int f=reject.length; --f >= 0; ) if(!reject[f]) pass++;
+
         buf.append(Util.f2.format(100.0 * pass / reject.length) + "% pass. ");
 		
         autoDFT();
@@ -114,17 +112,16 @@ public class MotionFilter extends KillFilter {
 	}
 
 	
-	private void addFilter(Vector2D[] pos, Motion dir, StringBuffer buf) {
+	private void addFilter(int type, Motion dir, StringBuffer buf) {
 		makeTempData(); 
 		
 		final float[] data = getTempData();
 		final boolean[] reject = getRejectMask();
 		
+		Signal pos = integration.getPositionSignal(type, dir);
 		
-		for(int t=pos.length; --t >= 0; )
-			data[t] = pos[t] == null ? Float.NaN : (float) dir.getValue(pos[t]);
-
-		Arrays.fill(data, pos.length, data.length, 0.0F);
+        System.arraycopy(pos.value, 0, data, 0, pos.length());
+		Arrays.fill(data, pos.length(), data.length, 0.0F);
 		
 		// Remove any constant scanning offset
 		levelData();
@@ -154,7 +151,6 @@ public class MotionFilter extends KillFilter {
 			if(cutoff > criticalLevel) criticalLevel = cutoff;
 		}
 		
-
 		for(int i=2; i<data.length; i += 2) {
 			double value = ExtraMath.hypot(data[i], data[i+1]);
 			if(value > criticalLevel) reject[i>>1] = true;	

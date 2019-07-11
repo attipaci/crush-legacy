@@ -27,13 +27,16 @@ package crush;
 import java.io.*;
 import java.util.Arrays;
 
-import jnum.Constant;
 import jnum.Copiable;
 import jnum.ExtraMath;
 import jnum.Util;
 import jnum.data.DataPoint;
 import jnum.data.Statistics;
 import jnum.data.WeightedPoint;
+import jnum.data.samples.Gaussian1D;
+import jnum.data.samples.Offset1D;
+import jnum.data.samples.Samples1D;
+import jnum.data.samples.overlay.Referenced1D;
 import jnum.parallel.ParallelTask;
 
 public class Signal implements Serializable, Cloneable, Copiable<Signal> {
@@ -100,6 +103,10 @@ public class Signal implements Serializable, Cloneable, Copiable<Signal> {
 		return 1.0F;
 	}
 		
+    public boolean isValidAt(final Frame frame) {
+        return !Float.isNaN(valueAt(frame));
+    }
+	
 	public void scale(double factor) {
 		float fValue = (float) factor;
 		for(int t=value.length; --t >= 0; ) value[t] *= fValue;
@@ -204,92 +211,142 @@ public class Signal implements Serializable, Cloneable, Copiable<Signal> {
 	    return new WeightedPoint(Statistics.mean(value), Double.POSITIVE_INFINITY);		
 	}
 	
-	// Use a quadratic fit...
-	// 
-	// f[n] = c
-	// f[n-1] = a-b+c
-	// f[n+1] = a+b+c
-	//
-	//  c=f[n]
-	//  a=(f[n-1] + f[n+1])/2 - f[n]
-	//  b=(f[n+1] - f[n-1])/2
-	//
-	//  f'=2ax+b --> f'[n]=b --> this is simply the chord!
-	//
-	// f[n+1] = f[n-1] + 2h f'[n]
-	//
-	// f[1] = f[0] + h f'[0]
-	// f[n] = f[n-1] + h f'[n]
-	public void differentiate() {
-		final float dt = (float) (resolution * integration.instrument.samplingInterval);
-		
-		final int n = value.length;
-		final int nm1 = n-1;
-		
-		// v[n] = f'[n+0.5]
-		for(int t=0; t<nm1; t++) value[t] = (value[t+1] - value[t]) / dt;
+	
+	public void square() {
+	    for(int t=value.length; --t >=0; ) value[t] *= value[t];
+	}
 
-		// the last value is based on the last difference...
-		value[n-1] = value[n-2];
-		
-		// otherwise, it's:
-		// v[n] = (f'[n+0.5] + f'[n-0.5]) = v[n] + v[n-1]
-		for(int t=nm1; --t > 0; ) value[t] = 0.5F * (value[t] + value[t-1]);
-		
-		isFloating = false;
+	public void sqrt() {
+	    for(int t=value.length; --t >=0; ) value[t] = (float) Math.sqrt(value[t]);
 	}
-	
-	// Intergate using trapesiod rule...
-	public void integrate() {
-		double dt = (float) (resolution * integration.instrument.samplingInterval);		
-		double I = 0.0;
-		
-		float halfLast = 0.0F;
-		
-		for(int t=0; t<value.length; t++) {
-			// Calculate next half increment of h/2 * f[t]
-			float halfNext = 0.5F * value[t];
-			
-			// Add half increments from below and above 
-			I += halfLast;
-			I += halfNext;
-			value[t] = (float) (I * dt);
-			
-			halfLast = halfNext;
-		}
-		
-		isFloating = true;
+
+	public void abs() {
+	    for(int t=value.length; --t >=0; ) value[t] = Math.abs(value[t]);
 	}
-	
-	public Signal getDifferential() {
-		Signal d = clone();
-		d.differentiate();
-		return d;
-	}
-	
-	public Signal getIntegral() {
-		Signal d = clone();
-		d.integrate();
-		return d;
-	}
+
+
+    /**
+     * Calculates the numerical derivative as a chord (f'[n] -> {f[n+1] + f[n-1}/2). It is a sequential algorithm
+     * that is in-place. As such it is efficient for sinlge-threaded processing of moderate sized data. For large
+     * number of points it may be more efficient to create temporary storage for parallel processing, if the overheads
+     * of the necessary storage and thread creations are worth it.
+     * 
+     * 
+     */
+    public void differentiate() {
+        final float idt = 1.0F / (float) (resolution * integration.instrument.samplingInterval);
+        final int nm1 = value.length - 1;
+            
+        // v[n] -> f'[n+0.5]
+        for(int t=0; t < nm1; t++) value[t] = (value[t+1] - value[t]) * idt;
+
+        // Extrapolate the last value
+        value[nm1] = value[nm1-1];
+
+        // otherwise, it's:
+        // v[n] -> (f'[n+0.5] + f'[n-0.5])/2 = v[n] + v[n-1]
+        for(int t=nm1; --t > 0; ) value[t] = 0.5F * (value[t] + value[t-1]);
+
+        isFloating = false;
+    }
+    
+    /**
+     * Calculates the numerical 2nd derivative, using an in-place sequential algorithm
+     * As such it is efficient for sinlge-threaded processing of moderate sized data. For large
+     * number of points it may be more efficient to create temporary storage for parallel processing, if the overheads
+     * of the necessary storage and thread creations are worth it.
+     * 
+     * 
+     */
+    public void secondDerivative() {
+        final float idt = 1.0F / (float) (resolution * integration.instrument.samplingInterval);
+        final float idt2 = idt*idt;
+        final int nm2 = value.length - 2;
+            
+        // v[n] -> f''[n+1]
+        for(int t=0; t < nm2; t++) value[t] = (value[t+2] + value[t] - 2.0F*value[t+1]) * idt2;
+
+        // shift donw n -> n-1
+        for(int t=nm2+1; --t > 0; ) value[t] = value[t-1];
+
+        // last value same as one before...
+        value[nm2+1] = value[nm2];
+        
+        isFloating = false;
+    }
+
+    /** 
+     * Intergates using trapesiod rule.
+     * 
+     * 
+     */
+    public void integrate() {
+        double dt = (float) (resolution * integration.instrument.samplingInterval);        
+        double I = 0.0;
+
+        float halfLast = 0.0F;
+
+        for(int t=0; t<value.length; t++) {
+            // Calculate next half increment of h/2 * f[t]
+            float halfNext = 0.5F * value[t];
+
+            // Add half increments from below and above 
+            I += halfLast;
+            I += halfNext;
+            value[t] = (float) (I * dt);
+
+            halfLast = halfNext;
+        }
+
+        isFloating = true;
+    }
+
+    public void differentiate(int nTimes) {
+        if(nTimes < 0) throw new IllegalArgumentException("Negative multiplicity: " + nTimes);
+        
+        while(nTimes > 1) {
+            secondDerivative();
+            nTimes -= 2;
+        }
+        
+        if(nTimes == 1) differentiate();
+    }
+
+    public void integrate(int nTimes) {
+        if(nTimes < 0) throw new IllegalArgumentException("Negative multiplicity: " + nTimes);
+        for(int i=0; i<nTimes; i++) integrate();
+    }
+
+    public Signal getDifferential() {
+        Signal d = clone();
+        d.differentiate();
+        return d;
+    }
+
+    public Signal getIntegral() {
+        Signal d = clone();
+        d.integrate();
+        return d;
+    }
+
 	
 	public void level(boolean isRobust) {
 		WeightedPoint center = isRobust ? getMedian() : getMean();
 		float fValue = (float) center.value();
 		for(int t=value.length; --t >= 0; ) value[t] -= fValue;
 	}
-
 	
-	public void smooth(double FWHM) {
-		// create a window with 2 FWHM width and odd number elements;
-		int N = 2 * (int)Math.ceil(FWHM / resolution) + 1;
-		double[] w = new double[N];
-		int ic = N/2;
-		double sigma = FWHM/resolution/Constant.sigmasInFWHM;
-		double A = -0.5 / (sigma * sigma);
-		for(int i=N; --i >= 0; ) w[i] = Math.exp(A*(i-ic)*(i-ic));
-		smooth(w);
-	}
+	
+    public final void smooth(double FWHM) {
+        Referenced1D beam = Gaussian1D.getBeam(FWHM, resolution * integration.instrument.samplingInterval);
+        smooth((double[]) beam.getCore(), beam.getReferenceIndex().value());
+    }
+    
+    public void smooth(double[] beam, double centerIndex) {
+        Samples1D smoothed = (Samples1D) new Samples1D.Float1D(value).getSmoothed(new Samples1D.Double1D(beam), new Offset1D(centerIndex), null, null);
+        value = (float[]) smoothed.getCore();
+    }
+
 	
 	// TODO Use this in ArrayUtil...
 	public void smooth(double[] w) {

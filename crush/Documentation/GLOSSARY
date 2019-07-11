@@ -2763,21 +2763,6 @@
 			@See: 'datapath', @APEX:'project', @GISMO:'date',
 			      @GISMO:'object'
 
-:: read.sae		@Instrument: GISMO
-			@Expert
-			@Since: 2.16
-			The GISMO FITS contains both the TES feedback DAC
-			values (proportional to the flux, if the feedback is
-			working as expected) and an error term 'SAE'. By
-			default CRUSH does not parse the SAE data, since it is
-			large, and not usually useful. However, this option
-			enables parsing the SAE signals, which is a 
-			prerequisite for using it, e.g. for decorrelating
-			(e.g. 'correlated.sae'), or measuring couplings
-			(e.g. 'write.coupling=sae').
-			@See: 'sae'
-
-
 :: recall=<option>	Undoes 'forget', and reinstates the <option> to its 
 			old value.
 			@See: 'forget'	

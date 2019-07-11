@@ -50,24 +50,6 @@ public class GismoIntegration extends Integration<AbstractGismo, GismoFrame> imp
 		super(parent);
 	}	
 	
-	
-	@Override
-	public void validate() {
-		super.validate();
-		
-		if(hasOption("read.sae")) {
-			levelSAE();
-			
-			SAEModality saeMode = (SAEModality) instrument.modalities.get("sae");
-			if(saeMode != null) {
-				info("Initializing SAE signals for decorrelation");
-				saeMode.init(this);
-			}
-		
-			discardSAEFields();
-		}
-	}
-	
 	@Override
 	public void setTau() throws Exception {
 		super.setTau();

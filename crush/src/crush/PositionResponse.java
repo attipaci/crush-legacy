@@ -39,6 +39,6 @@ public class PositionResponse extends MotionResponse {
 	
 	@Override
 	public Signal getSignal(Integration<?, ?> integration, Motion direction) {
-		return integration.getPositionSignal(this, type, direction);
+		return integration.getPositionSignal(type, direction);
 	}	
 }

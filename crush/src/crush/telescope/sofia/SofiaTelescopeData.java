@@ -65,7 +65,8 @@ public class SofiaTelescopeData extends SofiaData {
         telConfig = header.getString("TELCONF");
 
         epoch = header.containsKey("EQUINOX") ? CoordinateEpoch.forString(header.getDouble("EQUINOX") + "") : CoordinateEpoch.J2000;
-
+        if(epoch == null) epoch = CoordinateEpoch.J2000;
+        
         requestedEquatorial = new EquatorialCoordinates(Double.NaN, Double.NaN, epoch);
           
         boresightEquatorial = new EquatorialCoordinates(Double.NaN, Double.NaN, epoch);

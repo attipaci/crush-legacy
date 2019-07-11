@@ -168,11 +168,6 @@ public abstract class AbstractGismo extends Camera<GismoPixel> implements Ground
 			addModality(rowMode);
 		}
 		catch(NoSuchFieldException e) { error(e); }
-		
-		if(hasOption("read.sae")) {
-			try { addModality(new SAEModality(this)); }
-			catch(NoSuchFieldException e) { error(e); }
-		}
 	}
 	
 	@Override

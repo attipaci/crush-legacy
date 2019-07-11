@@ -30,7 +30,7 @@ import java.text.*;
 
 import crush.array.GeometricIndexed;
 import crush.instrument.ColorArrangement;
-import crush.instrument.hawcplus.HawcPlusPixel;
+
 import crush.sourcemodel.*;
 import crush.telescope.ChopperResponse;
 import crush.telescope.InstantFocus;
@@ -722,7 +722,7 @@ implements TableFormatter.Entries, BasicMessaging {
         try { addModality(modalities.get("obs-channels").new CoupledModality("sky", "Cs", Channel.class.getField("coupling"))); }
         catch(NoSuchFieldException e) { error(e); }
  
-        try { addModality(modalities.get("obs-channels").new NonLinearity("nonlinearity", "n", HawcPlusPixel.class.getField("nonlinearity"))); } 
+        try { addModality(modalities.get("obs-channels").new NonLinearity("nonlinearity", "n", Channel.class.getField("nonlinearity"))); } 
         catch(NoSuchFieldException e) { error(e); }
 
         // Add pointing response modes...
@@ -922,13 +922,13 @@ implements TableFormatter.Entries, BasicMessaging {
 
     public synchronized void standardWeights() {
         if(standardWeights) return;
-        for(Channel channel : this) channel.weight /= Math.sqrt(integrationTime);
+        for(Channel channel : this) channel.weight /= integrationTime;
         standardWeights = true;
     }
 
     public synchronized void sampleWeights() {
         if(!standardWeights) return;
-        for(Channel channel : this) channel.weight *= Math.sqrt(integrationTime);
+        for(Channel channel : this) channel.weight *= integrationTime;
         standardWeights = false;
     }
 
@@ -1015,11 +1015,6 @@ implements TableFormatter.Entries, BasicMessaging {
         return perimeter;
     }
 
-    public Hashtable<Integer, ChannelType> getFixedIndexLookup() {
-        Hashtable<Integer, ChannelType> lookup = new Hashtable<Integer, ChannelType>();
-        for(ChannelType channel : this) lookup.put(channel.getFixedIndex(), channel);
-        return lookup;
-    }
 
     public ChannelDivision<ChannelType> getDivision(String name, Field field, int discardFlags) throws IllegalAccessException {
         Hashtable<Integer, ChannelGroup<ChannelType>> table = new Hashtable<Integer, ChannelGroup<ChannelType>>();
@@ -1147,14 +1142,14 @@ implements TableFormatter.Entries, BasicMessaging {
     }
 
     public void slimGroups() {
-        Hashtable<Integer, ChannelType> lookup = getFixedIndexLookup();
+        ChannelLookup<ChannelType> lookup = new ChannelLookup<ChannelType>(this);
         for(String name : groups.keySet()) slimGroup(groups.get(name), lookup);
         for(String name : divisions.keySet()) for(ChannelGroup<?> group : divisions.get(name)) slimGroup(group, lookup);  
         for(String name : modalities.keySet()) for(Mode mode : modalities.get(name)) slimGroup(mode.getChannels(), lookup); 	
     }
 
-    public void slimGroup(ChannelGroup<?> group, Hashtable<Integer, ChannelType> indexLookup) {
-        for(int c=group.size(); --c >= 0; ) if(!indexLookup.containsKey(group.get(c).getFixedIndex())) group.remove(c);
+    public void slimGroup(ChannelGroup<?> group, ChannelLookup<ChannelType> lookup) {
+        for(int c=group.size(); --c >= 0; ) if(!lookup.contains(group.get(c).getFixedIndex())) group.remove(c);
         group.trimToSize();
     }
 
@@ -1389,7 +1384,7 @@ implements TableFormatter.Entries, BasicMessaging {
     // Sequential, because it is usually called from a parallel environment...
     private void calcGeometricOverlaps(final GeometricIndexed geometric, final double pointSize) {
         final double radius = 2.0 * pointSize;
-        final Hashtable<Integer, ChannelType> lookup = getFixedIndexLookup();
+        final ChannelLookup<ChannelType> lookup = new ChannelLookup<ChannelType>(this);
 
         double nbeams = 2.0 * pointSize / getResolution();
         final ArrayList<Integer> nearbyIndex = new ArrayList<Integer>((int) Math.ceil(nbeams * nbeams));

@@ -107,7 +107,7 @@ implements Copiable<ChannelGroup<ChannelType>> {
             int n=0;
             
             for(int i=fromIndex; i <= toIndex; i++) {
-                ChannelType channel = lookup.get(i + "");
+                ChannelType channel = lookup.get(i);
                 if(channel != null) if(channel.isUnflagged(excludeFlags)) {
                     add(channel);
                     n++;

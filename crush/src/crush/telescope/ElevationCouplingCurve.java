@@ -34,9 +34,9 @@ import jnum.text.SmartTokenizer;
 
 public class ElevationCouplingCurve extends Interpolator {
 	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+     * 
+     */
+    private static final long serialVersionUID = 8485857287434029939L;
 
 	public ElevationCouplingCurve(String fileName) throws IOException {
 		super(fileName);		

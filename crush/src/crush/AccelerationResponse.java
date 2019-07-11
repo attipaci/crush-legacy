@@ -36,6 +36,6 @@ public class AccelerationResponse extends MotionResponse {
 
 	@Override
 	public Signal getSignal(Integration<?, ?> integration, Motion direction) {
-		return integration.getAccelerationSignal(this, direction);
+		return integration.getAccelerationSignal(Motion.TELESCOPE, direction);
 	}	
 }

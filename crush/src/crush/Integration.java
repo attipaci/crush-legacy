@@ -34,7 +34,6 @@ import crush.telescope.Chopping;
 import crush.telescope.GroundBased;
 import crush.telescope.HorizontalFrame;
 import jnum.Configurator;
-import jnum.Constant;
 import jnum.ExtraMath;
 import jnum.LockedException;
 import jnum.Unit;
@@ -2017,192 +2016,143 @@ implements Comparable<Integration<InstrumentType, FrameType>>, TableFormatter.En
         }.process();
     }
 
+    
+    public final Signal getPositionSignal(final int type, final Motion direction) {
+        final float[] data = new float[size()]; 
 
-    public Vector2D[] getPositions(final int type) {
-        final Vector2D[] position = new Vector2D[size()];
-        SphericalCoordinates coords = new SphericalCoordinates();
-
-        for(Frame exposure : this) if(exposure != null) {
-            final Vector2D pos = new Vector2D();
-            position[exposure.index] = pos;
-
-            // Telescope motion should be w/o chopper...
-            // TELESCOPE motion with or w/o SCANNING and CHOPPER
-            if((type & Motion.TELESCOPE) != 0) {
-                coords.copy(exposure.getNativeCoords());
-                // Subtract the chopper motion if it is not requested...
-                if((type & Motion.CHOPPER) == 0) coords.subtractNativeOffset(exposure.chopperPosition);
-                pos.copy(coords);
-
-                if((type & Motion.PROJECT_GLS) != 0) pos.scaleX(coords.cosLat());
-            }
-
-            // Scanning includes the chopper motion
-            // SCANNING with or without CHOPPER
-            else if((type & Motion.SCANNING) != 0) {
-                exposure.getNativeOffset(pos);
-                // Subtract the chopper motion if it is not requested...
-                if((type & Motion.CHOPPER) == 0) pos.subtract(exposure.chopperPosition);
-            }	
-
-            // CHOPPER only...
-            else if(type == Motion.CHOPPER) pos.copy(exposure.chopperPosition);
+        for(int t=size(); --t >= 0; ) {
+            FrameType frame = get(t);
+            if(frame == null) continue;
+            Vector2D pos = frame.getPosition(type);
+            data[frame.index] = (pos == null) ? Float.NaN : (float) direction.getValue(pos);
         }
 
-        return position;
-    }
 
-    public Vector2D[] getSmoothPositions(int type) {
-        final int n = hasOption("positions.smooth") ? framesFor(option("positions.smooth").getDouble() * Unit.s) : 1;
+        Signal signal = new Signal(null, this, data, true);
 
-        final Vector2D[] pos = getPositions(type);
-        if(n < 2) return pos;
+        double fwhm = hasOption("positions.smooth") ? option("positions.smooth").getDouble() * Unit.s : instrument.samplingInterval;
+        signal.smooth(fwhm);
 
-        final Vector2D[] smooth = new Vector2D[size()];
-        int valids = n;
-
-        final Vector2D sum = new Vector2D();
-
-        for(int t=n; --t >= 0; ) {
-            if(pos[t] == null) valids--;
-            else sum.add(pos[t]);
-        }
-
-        final int nm = n >>> 1;
-        final int np = n - nm;
-        final int tot = size()-np-1;
-
-        for(int t=nm; t<tot; t++) {
-            if(pos[t + np] == null) valids--;
-            else sum.add(pos[t + np]);
-
-            if(valids > 0) {
-                smooth[t] = (Vector2D) sum.clone();
-                smooth[t].scale(1.0 / valids);
-            }
-
-            if(pos[t - nm] == null) valids++;
-            else sum.subtract(pos[t - nm]);
-        }
-
-        return smooth;
-    }
-
-
-    public Signal getPositionSignal(final Mode mode, final int type, final Motion direction) {
-        final Vector2D[] pos = getSmoothPositions(type);
-        final float[] data = new float[size()];	
-
-        for(int t=size(); --t >= 0; ) 
-            data[t] = (pos[t] == null) ? Float.NaN : (float) direction.getValue(pos[t]);
-
-        Signal signal = new Signal(mode, this, data, true);
         return signal;
     }
 
-    public Vector2D[] getScanningVelocities() { 
-        final Vector2D[] pos = getSmoothPositions(Motion.SCANNING | Motion.CHOPPER);
-        final Vector2D[] v = new Vector2D[size()];
+    public Signal getScanningVelocitySignal(final Motion direction) {
+        return getVelocitySignal(Motion.SCANNING | Motion.CHOPPER, direction);
+    }
 
-        final double i2dt = 0.5 / instrument.samplingInterval;
+    public final Signal getVelocitySignal(final int type, final Motion direction) {
+        return getMotionSignal(1, type, direction);
+    }
 
-        for(int t=size()-1; --t > 0; ) {
-            if(pos[t+1] == null || pos[t-1] == null) v[t] = null;
-            else {
-                v[t] = new Vector2D(
-                        pos[t+1].x() - pos[t-1].x(),
-                        pos[t+1].y() - pos[t-1].y()
-                        );
-                v[t].scale(i2dt);
-            }		
-        }
+    public final Signal getAccelerationSignal(final int type, final Motion direction) {
+        return getMotionSignal(2, type, direction);
+    }
 
-        // Extrapolate first and last...
-        if(size() > 1) v[0] = v[1];
-        if(size() > 2) v[size()-1] = v[size()-2];
+    public Signal getMotionSignal(int nth, final int type, final Motion direction) { 
+        Signal s = null;
 
-        return v;
+        switch(direction) {
+        case X:
+        case Y:
+            s = getPositionSignal(type, direction);
+            s.differentiate(nth);
+            break;
+        case X2:
+        case Y2:
+            s = getMotionSignal(nth, type, direction == Motion.X2 ? Motion.X : Motion.Y);
+            s.square();
+            break;
+        case X_MAGNITUDE:
+        case Y_MAGNITUDE:
+            final Signal vComp = getMotionSignal(nth, type, direction == Motion.X_MAGNITUDE ? Motion.X : Motion.Y);
+            vComp.abs();
+            break;
+        case NORM:
+            Signal x = getMotionSignal(nth, type, Motion.X);
+            Signal y = getMotionSignal(nth, type, Motion.Y);
+            for(int t = x.length(); --t >= 0; ) x.value[t] = x.value[t] * x.value[t] + y.value[t] * y.value[t];
+            return x;
+        case MAGNITUDE:
+            s = getMotionSignal(nth, type, Motion.NORM);
+            s.sqrt();
+            break;
+        default: 
+            throw new IllegalArgumentException("No motion in direction: " + direction);
+        } 
+
+        return s;
     }
 
     public DataPoint getTypicalScanningSpeed() {
-        final Vector2D[] v = getScanningVelocities();       
-        float[] speed = getFloats();
+        final Signal v = getScanningVelocitySignal(Motion.MAGNITUDE);
 
-        int n=0;
-        for(int t=v.length; --t >= 0; ) if(v[t] != null) if(!v[t].isNaN()) speed[n++] = (float) v[t].length();        
+        // Robust mean with exluding 20% tails
+        final double avev = Statistics.Inplace.robustMean(v.value, 0.2);
 
-        double avev = n > 10 ? Statistics.Inplace.robustMean(speed, 0, n, 0.1) : Statistics.Inplace.median(speed, 0, n);
-
-        for(int i=n; --i >= 0; ) {
-            final float dev = (float) (speed[i] - avev);
-            speed[i] = dev * dev;
+        // Now calculate the scatter...
+        for(int t = v.length(); --t >= 0; ) {
+            v.value[t] -= avev;
+            v.value[t] *= v.value[t];
         }
-        double w = n > 10 ? 
-                1.0 / Statistics.Inplace.robustMean(speed, 0, n, 0.1) : 
-                    Statistics.medianNormalizedVariance / Statistics.Inplace.median(speed, 0, n);
 
-                recycle(speed);
+        // Robust mean with exluding 20% tails
+        double w = 1.0 / Statistics.Inplace.robustMean(v.value, 0.2);
 
-                return new DataPoint(new WeightedPoint(avev, w));    
+        return new DataPoint(new WeightedPoint(avev, w));    
     }
 
     public int velocityClip(final Range range) { 
+        Signal v = getScanningVelocitySignal(Motion.MAGNITUDE);
 
         boolean isStrict = hasOption("vclip.strict");
 
-        final Vector2D[] v = getScanningVelocities();
-        int flagged = 0, cut = 0;
+        int flagged = 0, clipped = 0;
 
         for(Frame frame : this) if(frame != null) {
-            final Vector2D value = v[frame.index];
-
-            if(value == null) {
+            if(!v.isValidAt(frame)) {
                 set(frame.index, null);
-                cut++;
+                clipped++;
             }
-            else {	
-                final double speed = value.length();
+            else {  
+                final double speed = v.valueAt(frame);
 
                 if(speed < range.min()) {
                     if(isStrict) {
                         set(frame.index, null);
-                        cut++;
+                        clipped++;
                     }
                     else {
                         frame.flag(Frame.SKIP_SOURCE_MODELING);
                         flagged++;
                     }
-                }			
+                }           
                 else if(speed > range.max()) {
                     set(frame.index, null);
-                    cut++;
+                    clipped++;
                 }
-
             }
         }
 
         info("Discarding unsuitable mapping speeds. " +
                 "[" + (int)Math.round(100.0 * flagged / size()) + "% flagged, " +
-                (int) Math.round(100.0 * cut / size()) + "% clipped]");
+                (int) Math.round(100.0 * clipped / size()) + "% clipped]");
 
-        return cut;
+        return clipped;
 
     }
 
 
     public int accelerationCut(final double maxA) {
+        Signal a = getAccelerationSignal(Motion.TELESCOPE, Motion.MAGNITUDE);
 
-        final Vector2D[] a = getAccelerations();
         int cut = 0;
 
         for(Frame frame : this) if(frame != null) {
-            final Vector2D value = a[frame.index];
-
-            if(value == null) {
+            if(!a.isValidAt(frame)) {
                 set(frame.index, null);
                 cut++;
             }
-            else if(!(value.length() <= maxA)) {
+            else if(a.valueAt(frame) > maxA) {
                 set(frame.index, null);
                 cut++;
             }
@@ -2210,44 +2160,11 @@ implements Comparable<Integration<InstrumentType, FrameType>>, TableFormatter.En
 
         info("Discarding excessive telescope accelerations. [" + (int)Math.round(100.0 * cut / size()) + "% clipped]");
 
-        return cut;	
-    }
-
-    public Vector2D[] getAccelerations() { 
-        final Vector2D[] pos = getSmoothPositions(Motion.TELESCOPE);
-        final Vector2D[] a = new Vector2D[size()];
-
-        final double idt = 1.0 / instrument.samplingInterval;
-
-        for(int t=size()-1; --t > 0; ) {
-            if(pos[t] == null || pos[t+1] == null || pos[t-1] == null) a[t] = null;
-            else {
-                a[t] = new Vector2D(
-                        Math.cos(pos[t].y()) * Math.IEEEremainder(pos[t+1].x() + pos[t-1].x() - 2.0*pos[t].x(), Constant.twoPi),
-                        pos[t+1].y() + pos[t-1].y() - 2.0*pos[t].y()
-                        );
-                a[t].scale(idt);
-            }
-        }
-
-        // Extrapolate to ends...
-        if(size() > 1) a[0] = a[1];
-        if(size() > 2) a[size()-1] = a[size()-2];
-
-        return a;
-    }
-
-    public Signal getAccelerationSignal(Mode mode, final Motion direction) {
-        final Vector2D[] a = getAccelerations();
-        final float[] data = new float[size()];	
-
-        for(int t=size(); --t >= 0; ) 
-            data[t] = a[t] == null ? Float.NaN : (float) direction.getValue(a[t]);
-
-        return new Signal(mode, this, data, false);
+        return cut; 
     }
 
 
+    
 
     // TODO parallelize...
     public void checkForNaNs(final Iterable<? extends Channel> channels, final int from, int to) {
@@ -3029,8 +2946,8 @@ implements Comparable<Integration<InstrumentType, FrameType>>, TableFormatter.En
     public void detectChopper() {
         if(!(this instanceof Chopping)) return;
 
-        Signal x = getPositionSignal(null, Motion.CHOPPER, Motion.X);
-        Signal y = getPositionSignal(null, Motion.CHOPPER, Motion.Y);
+        Signal x = getPositionSignal(Motion.CHOPPER, Motion.X);
+        Signal y = getPositionSignal(Motion.CHOPPER, Motion.Y);
 
         x.level(false);
         y.level(false);

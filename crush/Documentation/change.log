@@ -1,3 +1,28 @@
+2.43-2 (legacy)
+
+	
+	[FIX] {SOFIA} Default coordinate epoch of J2000.0 is assumed when
+        coordinate epoch is unknown (-9999.0, or "UNKNOWN" in FITS). (back port
+	from master).
+
+	[FIX] Remove misguided sqrt() in Instrument.standardWeights() / 
+	sampleWeights(). (back port from master)
+
+	[FIX] Fix motion signal processing. (back port from master)
+
+	[FIX] Fix channel lookup duplicate IDs. (back port from master)
+
+	[CODE] {ElevationCouplingCurve} Change default serialVersionUID to 
+	generated. (back port from master)
+
+	[PRUNE] {GISMO} Deactivate 'read.sae' option. (back port from master)
+
+	[BUILD] Fix wrong closing tag for <move>. (back port from master)
+
+	[CHANGE] Removed immature support for SOFIA/HIMES.
+
+
+
 2.43-1 (27 December 2018)
  
 
