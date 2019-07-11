@@ -15,6 +15,9 @@
 	[CODE] {ElevationCouplingCurve} Change default serialVersionUID to 
 	generated. (back port from master)
 
+	[PRUNE] Removed 'devel' packages. (No development will take place on
+	legacy branch).
+
 	[PRUNE] {GISMO} Deactivate 'read.sae' option. (back port from master)
 
 	[BUILD] Fix wrong closing tag for <move>. (back port from master)
