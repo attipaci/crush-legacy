@@ -11,7 +11,7 @@ Last updated: 12 July 2019
 This is the legacy fork of the [crush](https://github.com/attipaci/crush) 
 astronomical data reduction and imaging package that supports instruments 
 which have been dropped from the main-line releases of **CRUSH** at version 
-2.50 (or after). Specifically, this version maintains support for: ASZCa, 
+2.50 (or after). Specifically, this fork maintains limited support for: ASZCa, 
 p-ArTeMiS, MAKO, MAKO-2, MUSTANG-2 and SHARC (1st gen). For all other 
 instruments, it is recommended that you use the latest main-line release.
 
