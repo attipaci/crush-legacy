@@ -1,7 +1,7 @@
 # CRUSH (Legacy version)
 
 Author: Attila Kovacs <attila[AT]sigmyne.com>  
-Last updated: 11 July 2018
+Last updated: 11 July 2019
 
 
 ----------------------------------------------------------------------------
@@ -69,7 +69,7 @@ arrays. Version 2 provides a unified platform for reducing data from
 virtually any fast-sampling scanning camera. 
 
 This is the legacy version that supports instruments that have been dropped
-in the upstream releases. Specifically: ASzCa, p-ArTeMiS, MAKO, MAKO-2, 
+in the upstream releases. Specifically: ASZCa, p-ArTeMiS, MAKO, MAKO-2, 
 MUSTANG-2 and SHARC (1st gen). For all other instruments, it is recommended
 that you use the latest stable release from upstream (>2.50).
 
@@ -2418,7 +2418,7 @@ values are generated during reduction, and therefore may not be available to
 Currently, CRUSH supports the following instruments (in alphabetical order):
 
    
-    ASZCA        (2mm) APEX SZ Camera, from Berkeley, CA
+    ASZCa        (2mm) APEX SZ Camera, from Berkeley, CA
                  bolo.berkeley.edu/apexsz/instrument.html
 
     GISMO        (2mm) Goddard-IRAM Superconducting 2-Millimeter Observer
@@ -2440,7 +2440,7 @@ Currently, CRUSH supports the following instruments (in alphabetical order):
     p-ArTeMiS    (200um, 350um, 450um) 3-color camera for APEX (prototype)
                  www.apex-telescope.org/instruments/pi/artemis
 
-    PolKA        (polarimetry) Polarimeter for LABOCA
+    PolKa        (polarimetry) Polarimeter for LABOCA
                  www.mpifr-bonn.mpg.de/staff/gsiringo/laboca/laboca\
                  _polarimeter.html
 
@@ -2575,5 +2575,5 @@ I hope you'll find this helpful and may you end up with beautiful images!!!
 
 -----------------------------------------------------------------------------
 
-Copyright (C)2014 -- Attila Kovacs 
+Copyright (C)2019 -- Attila Kovacs 
 
