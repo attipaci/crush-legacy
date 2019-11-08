@@ -35,19 +35,30 @@ if [ -z "$SHAREDIR" ] ; then
 	echo SHAREDIR set automatically to $SHAREDIR
 fi
 
-# Determine the directory of this script
-SCRIPTNAME=$(readlink -f $0)
-SCRIPTDIR=$(dirname $SCRIPTNAME)
+
+# Find the absolute path to this script (follow links manually, not using 
+# 'readlink -f' which does not work on MacOS X)
+CURRENT_DIR=`pwd`
+cd `dirname $0`
+SCRIPTNAME=`basename $0`
+while [ -L $SCRIPTNAME ] ; do
+  SCRIPTNAME=`readlink $(basename $SCRIPTNAME)`
+  cd `dirname $SCRIPTNAME`
+  SCRIPTNAME=`basename $SCRIPTNAME`
+done
+SCRIPTDIR=`pwd`
+cd $CURRENT_DIR
+
 
 INSTALL_FROM=$SCRIPTDIR
 
-# Determine the CRUSH distribution directory for this script...
-# It's after the last occurrence of "crush/" in the script path...
-CRUSHDIR="${SCRIPTDIR%crush/*}crush"
-echo "CRUSHDIR = $CRUSHDIR" 
 
-# Move to main CRUSH folder (2 levels up...)
-cd $CRUSHDIR
+# Go into the CRUSH distribution directory for this script...
+# It's two levels up from the install script's location.
+cd ${INSTALL_FROM}/../..
+
+# Set the distribution directory
+CRUSHDIR=`pwd`
 
 echo Installing CRUSH manuals to $MANDIR...
 
@@ -77,17 +88,17 @@ fi
 echo Installing CRUSH binaries to $BINDIR...
 mkdir -p $BINDIR
 cd $BINDIR
+
 ln -sf $CRUSHDIR/crush .
 ln -sf $CRUSHDIR/coadd .
 ln -sf $CRUSHDIR/detect .
-ln -sf $CRUSHDIR/difference .
+ln -sf $CRUSHDIR/difftool .
 ln -sf $CRUSHDIR/esorename .
 ln -sf $CRUSHDIR/histogram .
 ln -sf $CRUSHDIR/imagetool .
 ln -sf $CRUSHDIR/show .
 
 cd $CURRENT_DIR
-
 
 echo Done!
 

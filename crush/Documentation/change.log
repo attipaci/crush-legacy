@@ -1,3 +1,7 @@
+	[TWEAK] install.sh and autoconf.sh made more robust.
+
+	[TWEAK] A better way to identify the distro directory in install.sh.
+
 
 legacy 2.43-2 (11 July 2019)
 
