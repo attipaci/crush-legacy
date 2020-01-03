@@ -1,6 +1,20 @@
+legacy 2.43-4 (3 January 2020)
+
+	[FIX] {GISMO} gismo/faint.cfg had a few corrupted lines. Beyond these
+        not performing the functions they were meant to, they made the FITS
+        unreadable when the configuration was added to the header.
+
+	[PACKAGE] fits.jar updated to the current mainline git snapshot with
+        version designated as '1.15.3-AK1'
+
+
+
+legacy 2.43-3 (8 November 2019)	
+
 	[TWEAK] install.sh and autoconf.sh made more robust.
 
 	[TWEAK] A better way to identify the distro directory in install.sh.
+
 
 
 legacy 2.43-2 (11 July 2019)
